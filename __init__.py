@@ -4,10 +4,15 @@ import bpy  # type: ignore
 from .preferences import Sample_Preferences
 
 # Operators
-from .operators.FILE_OT_LinkTask import FILE_OT_LinkTask
+from .operators.CONDUIT_OT_LinkCollection import CONDUIT_OT_LinkCollection
+from .operators.CONDUIT_OT_SaveMasterVersion import CONDUIT_OT_SaveMasterVersion
+from .operators.CONDUIT_OT_SaveNewVersion import CONDUIT_OT_SaveNewVersion
 
 # panels
 from .panels.VIEW3D_PT_UI_Sample import VIEW3D_PT_UI_Sample
+
+# conduit connector (start/stop during register/unregister)
+from . import conduit_connector
 
 
 # reading values such as name, version and more from toml so there is no need to change information in two places
@@ -52,7 +57,9 @@ classes = [
     # preferences
     Sample_Preferences,
     # operators:
-    FILE_OT_LinkTask,
+    CONDUIT_OT_LinkCollection,
+    CONDUIT_OT_SaveMasterVersion,
+    CONDUIT_OT_SaveNewVersion,
     # panels:
     VIEW3D_PT_UI_Sample,
 ]
@@ -61,9 +68,27 @@ classes = [
 def register():
     for i in classes:
         bpy.utils.register_class(i)
+    # start the conduit connector when the addon is enabled
+    try:
+        conduit_connector.start_global_connector()
+    except Exception:
+        # don't fail registration if the connector can't start
+        import traceback
+
+        print("Failed to start ConduitConnector:")
+        traceback.print_exc()
 
 
 def unregister():
+    # stop connector first to ensure background threads are cleaned up
+    try:
+        conduit_connector.stop_global_connector()
+    except Exception:
+        import traceback
+
+        print("Failed to stop ConduitConnector:")
+        traceback.print_exc()
+
     for i in reversed(classes):
         bpy.utils.unregister_class(i)
 
