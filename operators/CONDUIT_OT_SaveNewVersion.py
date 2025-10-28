@@ -11,6 +11,11 @@ class CONDUIT_OT_SaveNewVersion(bpy.types.Operator):
     bl_label = "Saves a new version of File"
     bl_options = {"REGISTER", "UNDO"}
 
+    comment: bpy.props.StringProperty()#type: ignore
+    
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+    
     def execute(self, context):
         blend_path = Path(bpy.data.filepath)
         directory = os.path.dirname(bpy.data.filepath)
@@ -23,7 +28,7 @@ class CONDUIT_OT_SaveNewVersion(bpy.types.Operator):
 
         #store master file
         bpy.ops.wm.save_as_mainfile(filepath=filepath)
-        create_json_info()
+        create_json_info(comment=self.comment)
 
         #refresh version list
         return{'FINISHED'}
