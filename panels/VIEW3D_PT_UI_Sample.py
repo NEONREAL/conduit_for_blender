@@ -22,4 +22,6 @@ class VIEW3D_PT_UI_Sample(bpy.types.Panel):
         box = layout.box()
         box.label(text="someText")
         box.operator(get_operator("save_to_master"))
+        box.operator(get_operator("save_new_version"))
+
         
