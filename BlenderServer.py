@@ -1,25 +1,3 @@
-"""Lightweight socket-based connector for receiving Python instructions.
-
-This module provides a single class `ConduitConnector` which opens a TCP
-socket server (default localhost:9000) in a background thread and executes
-received UTF-8 encoded Python on the Blender `bpy` namespace.
-
-Notes / safety:
-- This executes arbitrary Python received from the network. Only use on
-  trusted networks or for local development. Never expose this port on
-  untrusted interfaces.
-- The class is standalone and intentionally not wired into the add-on
-  registration flow. Call `start()` to begin listening and `close()` to
-  shutdown.
-
-Example usage:
-    from conduit_connector import ConduitConnector
-    conn = ConduitConnector()
-    conn.start()  # starts server in background
-    # send python strings to localhost:9000 from another process
-    # when finished:
-    conn.close()
-"""
 from __future__ import annotations
 
 import socket
@@ -30,7 +8,7 @@ from typing import Optional
 import bpy  # type: ignore
 
 
-class ConduitConnector:
+class BlenderServer:
     """Standalone TCP server that receives Python and executes it in Blender.
 
     Public API:
@@ -158,19 +136,18 @@ class ConduitConnector:
 
 
 # global singleton helpers
-_global_connector: Optional[ConduitConnector] = None
+_global_connector: Optional[BlenderServer] = None
 
 
-def get_global_connector() -> Optional[ConduitConnector]:
+def get_global_connector() -> Optional[BlenderServer]:
     """Return the global connector instance if any."""
     return _global_connector
 
-
-def start_global_connector(host: str = "127.0.0.1", port: int = 9000) -> ConduitConnector:
+def start_global_connector(host: str = "127.0.0.1", port: int = 9000) -> BlenderServer:
     """Create and start a global connector if not already present."""
     global _global_connector
     if _global_connector is None:
-        _global_connector = ConduitConnector()
+        _global_connector = BlenderServer()
         _global_connector.start(host=host, port=port)
     else:
         if not _global_connector.is_running():
@@ -191,7 +168,7 @@ def stop_global_connector(timeout: float = 2.0) -> None:
 
 if __name__ == "__main__":
     # simple local run for development / manual testing
-    conn = ConduitConnector()
+    conn = BlenderServer()
     try:
         conn.start()
         print("Press Ctrl+C to stop")

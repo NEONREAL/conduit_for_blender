@@ -44,3 +44,15 @@ def create_json_info(comment: str | None = None) -> None:
     
     with open(json_path, "w") as f:
         json.dump(data, f, indent=4)
+
+def is_conduit_file() -> bool:
+    filepath = Path(bpy.data.filepath)
+    if not filepath:
+        return False
+    
+    asset_path = filepath.parent.parent
+    for file in asset_path.iterdir():
+        if file.suffix == ".sidecar":
+            return True
+    print(asset_path)
+    return False

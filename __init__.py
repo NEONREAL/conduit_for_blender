@@ -9,11 +9,10 @@ from .operators.CONDUIT_OT_SaveMasterVersion import CONDUIT_OT_SaveMasterVersion
 from .operators.CONDUIT_OT_SaveNewVersion import CONDUIT_OT_SaveNewVersion
 
 # panels
-from .panels.VIEW3D_PT_UI_Sample import VIEW3D_PT_UI_Sample
+from .panels.VIEW3D_PT_UI_AssetManager import VIEW3D_PT_UI_AssetManager
+from .panels.VIEW3D_PT_UI_ServerStatus import VIEW3D_PT_UI_ServerStatus
 
-# conduit connector (start/stop during register/unregister)
-from . import conduit_connector
-
+from . import BlenderServer
 
 # reading values such as name, version and more from toml so there is no need to change information in two places
 def load_manifest_info():
@@ -61,7 +60,8 @@ classes = [
     CONDUIT_OT_SaveMasterVersion,
     CONDUIT_OT_SaveNewVersion,
     # panels:
-    VIEW3D_PT_UI_Sample,
+    VIEW3D_PT_UI_ServerStatus,
+    VIEW3D_PT_UI_AssetManager,
 ]
 
 
@@ -69,29 +69,14 @@ def register():
     for i in classes:
         bpy.utils.register_class(i)
     # start the conduit connector when the addon is enabled
-    try:
-        conduit_connector.start_global_connector()
-    except Exception:
-        # don't fail registration if the connector can't start
-        import traceback
+    BlenderServer.start_global_connector()
 
-        print("Failed to start ConduitConnector:")
-        traceback.print_exc()
 
 
 def unregister():
-    # stop connector first to ensure background threads are cleaned up
-    try:
-        conduit_connector.stop_global_connector()
-    except Exception:
-        import traceback
-
-        print("Failed to stop ConduitConnector:")
-        traceback.print_exc()
-
     for i in reversed(classes):
         bpy.utils.unregister_class(i)
-
+    BlenderServer.stop_global_connector()
 
 if __name__ == "__main__":
     register()

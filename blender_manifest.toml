@@ -2,7 +2,7 @@ schema_version = "1.0.0"
 
 id = "conduit_for_blender"
 version = "0.0.1"
-name = "Connects Conduit and Blender"
+name = "Conduit for Blender"
 tagline = "Integration for Blender to connect to the Asset Manager Conduit"
 maintainer = "fxn-work@proton.me"
 type = "add-on"

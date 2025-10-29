@@ -17,6 +17,7 @@ class CONDUIT_OT_SaveNewVersion(bpy.types.Operator):
         return context.window_manager.invoke_props_dialog(self)
     
     def execute(self, context):
+        
         blend_path = Path(bpy.data.filepath)
         directory = os.path.dirname(bpy.data.filepath)
         version = get_version_from_filename(Path(bpy.data.filepath).name, True, True)

@@ -2,11 +2,9 @@ import bpy  # type: ignore
 from ..constants import AddonProperties
 from ..constants import get_operator
 from ..pipeline import get_version_from_filename, is_conduit_file
-from .. import BlenderServer
 from pathlib import Path
-from ..ConduitClient import get_heartbeat
 
-class VIEW3D_PT_UI_Sample(bpy.types.Panel):
+class VIEW3D_PT_UI_AssetManager(bpy.types.Panel):
     bl_label = "Asset Manager"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -14,21 +12,6 @@ class VIEW3D_PT_UI_Sample(bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-
-        hb = get_heartbeat()
-        hb_box = layout.box()
-        if hb.check():
-            hb_box.label(text="Conduit: Connected", icon="CHECKMARK")
-        else:
-            hb_box.label(text="Conduit: Offline", icon="ERROR")
-
-        # show current connector status
-        server_box = layout.box()
-        conn = BlenderServer.get_global_connector()
-        if conn and conn.is_running():
-            server_box.label(text="Blender: Running", icon="CHECKMARK")
-        else:
-            server_box.label(text="Blender: Offline", icon="ERROR")
 
         # save new version
         box = layout.box()
