@@ -11,52 +11,54 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
     bl_label = "Renames selected object to Hello World"
     bl_options = {"REGISTER", "UNDO"}
 
-    path_argument: bpy.props.StringProperty(subtype='FILE_PATH')#type: ignore
+    path: bpy.props.StringProperty(subtype='FILE_PATH')#type: ignore
 
     def execute(self, context):
-        print(self.path_argument)
+        print(self.path)
         if not self.validate_path():
             return {"CANCELLED"}
         
-        file = self.get_master_file(self.path_argument)
+        file = self.get_master_file(self.path)
         if file:
-            print("file")
-        
-
-        print(file)
-
-
-        
-        
+            self.import_collection(file)
         return {"FINISHED"}
     
-    def validate_path(self) -> Path:
+    def validate_path(self) -> Path | None:
         try: 
-            self.path = Path(self.path_argument)
+            path = Path(self.path)
 
         except Exception as e:
             self.report({"ERROR"}, f"Invalid path: {str(e)}")
-            return False
+            return None
             
         if self.path:
-            return True
+            return path
 
 
     def get_master_file(self, directory: Path) -> Path | None:
+        if isinstance(directory, Path):
+            pass
+        else:
+            directory = Path(directory)
+
         for file in directory.iterdir():
             if file.name.startswith("_master"):
                 return file
         return None
     
     def import_collection(self, filepath):
-        collection_name = "EXPORT"
+        collection_name = get_expected_filename(Path(filepath))
 
         # Load the linked collection
-        with bpy.data.libraries.load(filepath, link=True, relative=True, create_liboverrides=False) as (data_from, data_to):
+        with bpy.data.libraries.load(str(filepath), link=True, relative=True, create_liboverrides=True) as (data_from, data_to):
             if collection_name in data_from.collections:
                 data_to.collections = [collection_name]
             else:
                 self.report({'WARNING'}, f"Collection '{collection_name}' not found in {filepath}")
                 return
+            
+        linked_collection = data_to.collections[0]
+
+        bpy.context.scene.collection.children.link(linked_collection)
         return
     

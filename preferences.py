@@ -5,9 +5,14 @@ from .constants import get_operator
 class Sample_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
+    username: bpy.props.StringProperty(
+        name="Username",
+        default="Fxnarji",
+        description="Enter your username"
+    )
+
     def draw(self, context):
         layout = self.layout
         box = layout.box()
-        box.label(text="Hello There!")
-        box.operator(get_operator("dummy"))
-
+        # Pass `self` as the owner of the property
+        box.prop(self, "username")
