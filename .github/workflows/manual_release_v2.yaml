@@ -17,20 +17,28 @@ jobs:
         with:
           version: "4.5"  # replace with the exact Blender version you want
 
+      - name: Remove old versions
+        run: |
+          echo | ls docs/
+          rm -rf docs/
+
       - name: Build Blender add-on
         run: |
           mkdir -p docs
           blender --command extension build --source-dir . --output-dir docs/ --verbose
 
-      - name: Generate index.json
-        run: |
-          blender --command extension server-generate --repo-dir docs/
-
       - name: Commit and push build artifacts
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add docs/
+          git add -A docs/
           git commit -m "Update build and index.json" || echo "No changes to commit"
           git push origin HEAD:main
 
+  deploy:
+    needs: build
+    uses: ./.github/workflows/push-to-another-repo.yaml
+    with:
+      directory: docs
+    secrets:
+      PUSH_TOKEN: ${{secrets.PUSH_TOKEN}}
