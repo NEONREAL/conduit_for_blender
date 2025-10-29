@@ -1,182 +1,126 @@
-from __future__ import annotations
-
 import socket
-import threading
-import traceback
-from typing import Optional
-
-import bpy  # type: ignore
-
+from threading import Thread
+import json
 
 class BlenderServer:
-    """Standalone TCP server that receives Python and executes it in Blender.
-
-    Public API:
-    - start(host: str = "localhost", port: int = 9000) -> None
-    - close(timeout: float = 2.0) -> None
-
-    Implementation notes:
-    - The server runs on a background thread. It uses a short accept timeout
-      to poll for shutdown requests.
-    - Received payloads are decoded as UTF-8 and executed with `exec` using
-      a globals dict that exposes `bpy`.
-    """
-
-    def __init__(self) -> None:
-        self._thread: Optional[threading.Thread] = None
-        self._sock: Optional[socket.socket] = None
+    def __init__(self):
         self._running = False
+        self._sock = None
+        self._thread = None
         self._host = "127.0.0.1"
         self._port = 9000
 
-    def start(self, host: str = "127.0.0.1", port: int = 9000) -> None:
-        """Start the server in a daemon thread.
+        self.commands = {
+            "ping": self.handle_ping,
+            "status": self.handle_status,
+            "log": self.handle_log
+        }
 
-        If a server is already running this is a no-op.
-        """
+        self.start()
+
+    def handle_ping(self, conn, args):
+        resp = {"status": "ok", "reply": "pong"}
+        conn.sendall(json.dumps(resp).encode("utf-8"))
+
+    def handle_status(self, conn, args):
+        resp = {"status": "ok", "reply": "running"}
+        conn.sendall(json.dumps(resp).encode("utf-8"))
+
+    def handle_log(self, conn, args):
+        try:
+            level = args.get("level", "info")
+            message = args.get("message", "")
+            log(message, level)
+            conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
+        except Exception as e:
+            conn.sendall(json.dumps({"status":"error","msg": str(e)}).encode("utf-8"))
+
+
+    def _serve_loop(self):
+        while self._running:
+            conn = None
+            try:
+                conn, _ = self._sock.accept()
+                buffer = ""
+                conn.settimeout(1.0)  # avoid hanging forever
+
+                while True:
+                    chunk = conn.recv(1024).decode("utf-8")
+                    if not chunk:
+                        break  # client closed connection
+                    buffer += chunk
+                    if "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.rstrip("\r\n")  # safe for both CR and LF
+                        try:
+                            payload = json.loads(line)
+                            cmd = payload.get("cmd")
+                        except json.JSONDecodeError:
+                            conn.sendall(b'{"status":"error","msg":"invalid json"}\n')
+                            break
+
+                        handler = self.commands.get(cmd)
+                        if handler:
+                            handler(conn, payload)
+                        else:
+                            conn.sendall(b'{"status":"error","msg":"unknown command"}\n')
+                        break  # process one message per connection
+
+            except socket.timeout:
+                continue
+            except Exception as e:
+                log("ERROR in _serve_loop: " + str(e), "error")
+            finally:
+                if conn:
+                    conn.close()
+
+
+
+    def start(self, host="127.0.0.1", port=9000, background=True):
         if self._running:
-            print(f"ConduitConnector already running on {self._host}:{self._port}")
+            log(f"Server already running on {self._host}:{self._port}", "info")
             return
 
         self._host = host
         self._port = port
         self._running = True
 
-        # create and bind socket here so errors surface synchronously
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # allow quick restart during development
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((self._host, self._port))
-        sock.listen(5)
-        sock.settimeout(1.0)  # timeout used to check self._running periodically
-        self._sock = sock
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._sock.bind((self._host, self._port))
+        self._sock.listen(5)
+        self._sock.settimeout(1.0)
 
-        self._thread = threading.Thread(target=self._serve_loop, daemon=True)
-        self._thread.start()
-        print(f"ConduitConnector listening on {self._host}:{self._port}")
+        log(f"Starting TCP server on {self._host}:{self._port}", "info")
 
-    def is_running(self) -> bool:
-        """Return whether the server is currently running."""
-        return bool(self._running)
+        if background:
+            self._thread = Thread(target=self._serve_loop, daemon=True)
+            self._thread.start()
+        else:
+            self._serve_loop()
 
-    def _serve_loop(self) -> None:
-        assert self._sock is not None
-        sock = self._sock
-        while self._running:
-            try:
-                try:
-                    conn, addr = sock.accept()
-                except socket.timeout:
-                    continue
-
-                with conn:
-                    try:
-                        conn.settimeout(2.0)
-                        data = b""
-                        # single recv is fine for small payloads; adjust if needed
-                        chunk = conn.recv(4096)
-                        while chunk:
-                            data += chunk
-                            # try to read more if available
-                            try:
-                                chunk = conn.recv(4096)
-                            except socket.timeout:
-                                break
-
-                        if not data:
-                            continue
-
-                        text = data.decode("utf-8")
-                        print(f"ConduitConnector received from {addr}: {text!r}")
-
-                        # Execute received Python with access to `bpy` only.
-                        # WARNING: this will run arbitrary code. Only use on trusted
-                        # networks and for local development.
-                        globals_dict = {"bpy": bpy}
-                        try:
-                            exec(text, globals_dict)
-                        except Exception:
-                            print("Error executing received code:")
-                            traceback.print_exc()
-                    except Exception:
-                        print("ConduitConnector connection handling error:")
-                        traceback.print_exc()
-            except OSError:
-                # socket was closed or other fatal error
-                break
-
-        print("ConduitConnector server loop exiting")
-
-    def close(self, timeout: float = 2.0) -> None:
-        """Stop the server and close the socket.
-
-        Blocks briefly waiting for the thread to exit (timeout seconds).
-        """
+    def stop(self):
         if not self._running:
             return
-
         self._running = False
-
-        # close socket to unblock accept()
         try:
             if self._sock:
                 self._sock.close()
         except Exception:
             pass
-
-        # wait for thread to finish
-        if self._thread is not None:
-            self._thread.join(timeout)
-            if self._thread.is_alive():
-                print("ConduitConnector thread did not stop within timeout")
-
-        self._thread = None
         self._sock = None
-        print("ConduitConnector closed")
+        log("Server shutdown requested", "info")
 
+def log(messsage, level):
+    print(messsage)
 
-# global singleton helpers
-_global_connector: Optional[BlenderServer] = None
+# --------------------------
+# Singleton for Blender usage
+# --------------------------
+_instance: BlenderServer | None = None
 
-
-def get_global_connector() -> Optional[BlenderServer]:
-    """Return the global connector instance if any."""
-    return _global_connector
-
-def start_global_connector(host: str = "127.0.0.1", port: int = 9000) -> BlenderServer:
-    """Create and start a global connector if not already present."""
-    global _global_connector
-    if _global_connector is None:
-        _global_connector = BlenderServer()
-        _global_connector.start(host=host, port=port)
-    else:
-        if not _global_connector.is_running():
-            _global_connector.start(host=host, port=port)
-    return _global_connector
-
-
-def stop_global_connector(timeout: float = 2.0) -> None:
-    """Stop and clear the global connector."""
-    global _global_connector
-    if _global_connector is None:
-        return
-    try:
-        _global_connector.close(timeout=timeout)
-    finally:
-        _global_connector = None
-
-
-if __name__ == "__main__":
-    # simple local run for development / manual testing
-    conn = BlenderServer()
-    try:
-        conn.start()
-        print("Press Ctrl+C to stop")
-        while True:
-            try:
-                # keep the main thread alive
-                threading.Event().wait(1.0)
-            except KeyboardInterrupt:
-                break
-    finally:
-        conn.close()
+def get_server() -> BlenderServer:
+    global _instance
+    if _instance is None:
+        _instance = BlenderServer()
+    return _instance

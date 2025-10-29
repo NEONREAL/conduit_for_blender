@@ -1,6 +1,6 @@
 import bpy  # type: ignore
 from ..constants import AddonProperties
-from .. import BlenderServer
+from ..BlenderServer import get_server
 from ..ConduitClient import get_heartbeat
 
 class VIEW3D_PT_UI_ServerStatus(bpy.types.Panel):
@@ -21,8 +21,8 @@ class VIEW3D_PT_UI_ServerStatus(bpy.types.Panel):
 
         # show current connector status
         server_box = layout.box()
-        conn = BlenderServer.get_global_connector()
-        if conn and conn.is_running():
+        server = get_server()
+        if server._running:
             server_box.label(text="Blender: Running", icon="CHECKMARK")
         else:
-            server_box.label(text="Blender: Running", icon="ERROR")
+            server_box.label(text="Blender: Offline", icon="ERROR")

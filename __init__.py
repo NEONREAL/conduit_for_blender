@@ -1,6 +1,8 @@
 import bpy  # type: ignore
+import json
+from . import BlenderServer
 
-# preferences
+# Preferences
 from .preferences import Sample_Preferences
 
 # Operators
@@ -8,37 +10,29 @@ from .operators.CONDUIT_OT_LinkCollection import CONDUIT_OT_LinkCollection
 from .operators.CONDUIT_OT_SaveMasterVersion import CONDUIT_OT_SaveMasterVersion
 from .operators.CONDUIT_OT_SaveNewVersion import CONDUIT_OT_SaveNewVersion
 
-# panels
+# Panels
 from .panels.VIEW3D_PT_UI_AssetManager import VIEW3D_PT_UI_AssetManager
 from .panels.VIEW3D_PT_UI_ServerStatus import VIEW3D_PT_UI_ServerStatus
 
-from . import BlenderServer
+# Module-level variable for the server instance
+_server_instance: BlenderServer.BlenderServer | None = None
 
-# reading values such as name, version and more from toml so there is no need to change information in two places
+# Read addon manifest info
 def load_manifest_info():
     from .constants import get_manifest
 
     manifest = get_manifest()
 
-    # reading addon name
     extension_name = manifest["name"]
-
-    # reading addon version
-    version_str = manifest["version"]
-    version_tuple = tuple(int(x) for x in version_str.split("."))
-
-    # reading Blender version
-    blender_version_str = manifest["blender_version_min"]
-    blender_version_tuple = tuple(int(x) for x in blender_version_str.split("."))
+    version_tuple = tuple(int(x) for x in manifest["version"].split("."))
+    blender_version_tuple = tuple(int(x) for x in manifest["blender_version_min"].split("."))
 
     bl_info = {
         "name": extension_name,
         "version": version_tuple,
         "blender": blender_version_tuple,
     }
-
     return bl_info
-
 
 blender_manifest = load_manifest_info()
 bl_info = {
@@ -52,32 +46,36 @@ bl_info = {
     "category": "UI",
 }
 
+# Classes to register
 classes = [
-    # preferences
     Sample_Preferences,
-    # operators:
     CONDUIT_OT_LinkCollection,
     CONDUIT_OT_SaveMasterVersion,
     CONDUIT_OT_SaveNewVersion,
-    # panels:
     VIEW3D_PT_UI_ServerStatus,
     VIEW3D_PT_UI_AssetManager,
 ]
 
-
 def register():
-    for i in classes:
-        bpy.utils.register_class(i)
-    # start the conduit connector when the addon is enabled
-    BlenderServer.start_global_connector()
+    global _server_instance
 
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
+    # Create and start the server
+    _server_instance = BlenderServer.BlenderServer()
+    _server_instance.start(background=True)  # runs in background thread
 
 def unregister():
-    for i in reversed(classes):
-        bpy.utils.unregister_class(i)
-    BlenderServer.stop_global_connector()
+    global _server_instance
+
+    # Stop server if running
+    if _server_instance:
+        _server_instance.stop()
+        _server_instance = None
+
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
 
 if __name__ == "__main__":
     register()
-

@@ -1,7 +1,6 @@
 import socket
 import threading
 import time
-import json
 
 class ConduitClient:
     HOST = "127.0.0.1"
@@ -22,6 +21,7 @@ class ConduitClient:
     # --------------------------
     # Internal heartbeat loop
     # --------------------------
+
     def _heartbeat_loop(self):
         while not self._stop:
             now = time.time()
@@ -36,45 +36,62 @@ class ConduitClient:
             return False
         with self._lock:
             alive = response["status"] == "ok"
+
+            if not self._alive:
+                log("Successfully connected to Conduit. Conduit <- Blender", "success")
+                print("Successfully connected to Conduit. Conduit <- Blender", "success")
+
+
             if alive:
                 self._alive = True
+            else:
+                self._alive = False
             self._last_check = time.time()
 
     # --------------------------
     # Command sending
     # --------------------------
+
     def send(self, command: str, **kwargs) -> dict | None:
+        """Send a JSON command to the server and receive a JSON response using a delimiter."""
+        import json
         payload = {"cmd": command, **kwargs}
-        data = json.dumps(payload).encode("utf-8")
+        data = json.dumps(payload) + "\n"  # <-- add delimiter
+        data_bytes = data.encode("utf-8")
+
         try:
             with socket.create_connection((self.HOST, self.PORT), timeout=self.TIMEOUT) as s:
-                s.sendall(data)
-                try:
-                    resp = s.recv(1024)
-                    return json.loads(resp.decode("utf-8"))
-                except socket.timeout:
-                    return None
+                s.sendall(data_bytes)
+
+                # Receive until delimiter
+                buffer = ""
+                while True:
+                    chunk = s.recv(1024).decode("utf-8")
+                    if not chunk:
+                        break  # connection closed
+                    buffer += chunk
+                    if "\n" in buffer:
+                        line, _ = buffer.split("\n", 1)
+                        return json.loads(line)
+                # if we exit loop without finding delimiter
+                return json.loads(buffer) if buffer else None
+
         except Exception as e:
             print("ConduitClient send error:", e)
             return None
-
-
     # --------------------------
     # Public API
     # --------------------------
+
     def check(self) -> bool:
         """Returns last known alive status (non-blocking)."""
         with self._lock:
             return self._alive
 
-
-
-
     def stop(self):
         """Stops background heartbeat thread."""
         self._stop = True
         self._thread.join()
-
 
 # --------------------------
 # Singleton for Blender usage
