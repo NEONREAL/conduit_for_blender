@@ -25,6 +25,6 @@ class VIEW3D_PT_UI_AssetManager(bpy.types.Panel):
         row = box.row()
         row.enabled = False
         row.label(
-            text=f"current Version: {get_version_from_filename(Path(bpy.data.filepath).name)}"
+            text=f"current Version: {get_version_from_filename(Path(bpy.data.filepath).name, next_version=False)}"
         )
 
