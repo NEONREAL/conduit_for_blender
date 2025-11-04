@@ -6,10 +6,8 @@ class Sample_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     username: bpy.props.StringProperty(
-        name="Username",
-        default="Fxnarji",
-        description="Enter your username"
-    )
+        name="Username", default="Fxnarji", description="Enter your username"
+    )  # type: ignore
 
     def draw(self, context):
         layout = self.layout

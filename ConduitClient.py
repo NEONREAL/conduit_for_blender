@@ -1,6 +1,9 @@
 import socket
 import threading
 import time
+from time import sleep
+import bpy  # type: ignore
+
 
 class ConduitClient:
     HOST = "127.0.0.1"
@@ -9,7 +12,6 @@ class ConduitClient:
 
     def __init__(self, interval: float = 1.0):
         self.interval = interval  # seconds between heartbeats
-        self._last_check = 0.0
         self._alive = False
         self._lock = threading.Lock()
         self._stop = False
@@ -24,10 +26,9 @@ class ConduitClient:
 
     def _heartbeat_loop(self):
         while not self._stop:
-            now = time.time()
-            if now - self._last_check >= self.interval:
-                self._ping()
-            time.sleep(0.05)  # small sleep to avoid busy waiting
+            print("pinged")
+            self._ping()
+            sleep(1)
 
     def _ping(self):
         """Send ping command and update _alive status."""
@@ -39,14 +40,19 @@ class ConduitClient:
 
             if not self._alive:
                 log("Successfully connected to Conduit. Conduit <- Blender", "success")
-                print("Successfully connected to Conduit. Conduit <- Blender", "success")
-
+                print(
+                    "Successfully connected to Conduit. Conduit <- Blender", "success"
+                )
 
             if alive:
                 self._alive = True
             else:
                 self._alive = False
             self._last_check = time.time()
+
+    def register_blender_exec(self):
+        path = bpy.app.binary_path
+        self.send("blender_exec", path=path)
 
     # --------------------------
     # Command sending
@@ -55,12 +61,15 @@ class ConduitClient:
     def send(self, command: str, **kwargs) -> dict | None:
         """Send a JSON command to the server and receive a JSON response using a delimiter."""
         import json
+
         payload = {"cmd": command, **kwargs}
         data = json.dumps(payload) + "\n"  # <-- add delimiter
         data_bytes = data.encode("utf-8")
 
         try:
-            with socket.create_connection((self.HOST, self.PORT), timeout=self.TIMEOUT) as s:
+            with socket.create_connection(
+                (self.HOST, self.PORT), timeout=self.TIMEOUT
+            ) as s:
                 s.sendall(data_bytes)
 
                 # Receive until delimiter
@@ -79,6 +88,7 @@ class ConduitClient:
         except Exception as e:
             print("ConduitClient send error:", e)
             return None
+
     # --------------------------
     # Public API
     # --------------------------
@@ -93,10 +103,12 @@ class ConduitClient:
         self._stop = True
         self._thread.join()
 
+
 # --------------------------
 # Singleton for Blender usage
 # --------------------------
 _instance: ConduitClient | None = None
+
 
 def get_client() -> ConduitClient:
     global _instance
@@ -104,11 +116,18 @@ def get_client() -> ConduitClient:
         _instance = ConduitClient()
     return _instance
 
+
 def get_heartbeat() -> bool:
     """Shortcut to check if the server is alive."""
     return get_client().check()
 
-def log(message: str, level: str = "info"):        
+
+def log(message: str, level: str = "info"):
     """Send a log command to the server."""
     client = get_client()
-    client.send("log", message=message,level=level)
+    client.send("log", message=message, level=level)
+
+
+def register():
+    client = get_client()
+    client.register_blender_exec()

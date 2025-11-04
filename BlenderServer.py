@@ -2,6 +2,7 @@ import socket
 from threading import Thread
 import json
 
+
 class BlenderServer:
     def __init__(self):
         self._running = False
@@ -13,7 +14,7 @@ class BlenderServer:
         self.commands = {
             "ping": self.handle_ping,
             "status": self.handle_status,
-            "log": self.handle_log
+            "log": self.handle_log,
         }
 
         self.start()
@@ -33,19 +34,21 @@ class BlenderServer:
             log(message, level)
             conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
         except Exception as e:
-            conn.sendall(json.dumps({"status":"error","msg": str(e)}).encode("utf-8"))
-
+            conn.sendall(json.dumps({"status": "error", "msg": str(e)}).encode("utf-8"))
 
     def _serve_loop(self):
+        if self._sock is None:
+            return
+
         while self._running:
-            conn = None
+            connection = None
             try:
-                conn, _ = self._sock.accept()
+                connection, _ = self._sock.accept()
                 buffer = ""
-                conn.settimeout(1.0)  # avoid hanging forever
+                connection.settimeout(1.0)  # avoid hanging forever
 
                 while True:
-                    chunk = conn.recv(1024).decode("utf-8")
+                    chunk = connection.recv(1024).decode("utf-8")
                     if not chunk:
                         break  # client closed connection
                     buffer += chunk
@@ -56,14 +59,18 @@ class BlenderServer:
                             payload = json.loads(line)
                             cmd = payload.get("cmd")
                         except json.JSONDecodeError:
-                            conn.sendall(b'{"status":"error","msg":"invalid json"}\n')
+                            connection.sendall(
+                                b'{"status":"error","msg":"invalid json"}\n'
+                            )
                             break
 
                         handler = self.commands.get(cmd)
                         if handler:
-                            handler(conn, payload)
+                            handler(connection, payload)
                         else:
-                            conn.sendall(b'{"status":"error","msg":"unknown command"}\n')
+                            connection.sendall(
+                                b'{"status":"error","msg":"unknown command"}\n'
+                            )
                         break  # process one message per connection
 
             except socket.timeout:
@@ -71,10 +78,8 @@ class BlenderServer:
             except Exception as e:
                 log("ERROR in _serve_loop: " + str(e), "error")
             finally:
-                if conn:
-                    conn.close()
-
-
+                if connection:
+                    connection.close()
 
     def start(self, host="127.0.0.1", port=9000, background=True):
         if self._running:
@@ -84,10 +89,13 @@ class BlenderServer:
         self._host = host
         self._port = port
         self._running = True
-
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self._sock.bind((self._host, self._port))
+        try:
+            self._sock.bind((self._host, self._port))
+        except OSError as e:
+            log(f"Failed to bind {self._host}:{self._port} – {e}", "error")
+            return
         self._sock.listen(5)
         self._sock.settimeout(1.0)
 
@@ -111,13 +119,16 @@ class BlenderServer:
         self._sock = None
         log("Server shutdown requested", "info")
 
+
 def log(messsage, level):
     print(messsage)
+
 
 # --------------------------
 # Singleton for Blender usage
 # --------------------------
 _instance: BlenderServer | None = None
+
 
 def get_server() -> BlenderServer:
     global _instance

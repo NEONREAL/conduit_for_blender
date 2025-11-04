@@ -1,14 +1,15 @@
 import bpy  # type: ignore
-from ..constants import AddonProperties
+from ..constants import AddonProperties, get_operator
 from ..BlenderServer import get_server
 from ..ConduitClient import get_heartbeat
+
 
 class VIEW3D_PT_UI_ServerStatus(bpy.types.Panel):
     bl_label = "Server Status"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
     bl_category = AddonProperties.panel_category
-    
+
     def draw(self, context):
         layout = self.layout
 
@@ -26,3 +27,5 @@ class VIEW3D_PT_UI_ServerStatus(bpy.types.Panel):
             server_box.label(text="Blender: Running", icon="CHECKMARK")
         else:
             server_box.label(text="Blender: Offline", icon="ERROR")
+
+        layout.operator(get_operator("register_blender"), text="register")
