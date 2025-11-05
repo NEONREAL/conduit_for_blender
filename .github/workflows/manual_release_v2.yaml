@@ -18,6 +18,7 @@ jobs:
 
       - name: Build Blender add-on
         run: |
+          rm -rf builds
           mkdir -p builds
           blender --command extension build --source-dir . --output-dir builds/ --verbose
           echo "Build contents:"
