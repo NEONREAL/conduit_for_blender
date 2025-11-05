@@ -26,7 +26,6 @@ class ConduitClient:
 
     def _heartbeat_loop(self):
         while not self._stop:
-            print("pinged")
             self._ping()
             sleep(1)
 

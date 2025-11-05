@@ -14,7 +14,6 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
     path: bpy.props.StringProperty(subtype='FILE_PATH')#type: ignore
 
     def execute(self, context):
-        print(self.path)
         if not self.validate_path():
             return {"CANCELLED"}
         

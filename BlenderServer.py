@@ -1,6 +1,7 @@
 import socket
 from threading import Thread
 import json
+import bpy
 
 
 class BlenderServer:
@@ -14,10 +15,18 @@ class BlenderServer:
         self.commands = {
             "ping": self.handle_ping,
             "status": self.handle_status,
-            "log": self.handle_log,
+            "link": self.handle_link
         }
 
         self.start()
+
+    def handle_link(self, conn, args):
+        try :
+            filepath = args.get("path", "")
+            bpy.ops.conduit.link(path=filepath)
+            conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
+        except Exception as e:
+            conn.sendall(json.dumps({"status": "error", "msg": str(e)}).encode("utf-8"))
 
     def handle_ping(self, conn, args):
         resp = {"status": "ok", "reply": "pong"}
@@ -26,15 +35,6 @@ class BlenderServer:
     def handle_status(self, conn, args):
         resp = {"status": "ok", "reply": "running"}
         conn.sendall(json.dumps(resp).encode("utf-8"))
-
-    def handle_log(self, conn, args):
-        try:
-            level = args.get("level", "info")
-            message = args.get("message", "")
-            log(message, level)
-            conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
-        except Exception as e:
-            conn.sendall(json.dumps({"status": "error", "msg": str(e)}).encode("utf-8"))
 
     def _serve_loop(self):
         if self._sock is None:
@@ -121,6 +121,7 @@ class BlenderServer:
 
 
 def log(messsage, level):
+    return
     print(messsage)
 
 
