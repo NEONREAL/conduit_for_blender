@@ -6,8 +6,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -15,30 +14,26 @@ jobs:
       - name: Install Blender
         uses: bradyajohnston/setup-blender@v3
         with:
-          version: "4.5"  # replace with the exact Blender version you want
-
-      - name: Remove old versions
-        run: |
-          echo | ls builds/
-          rm -rf builds/
+          version: "4.5"
 
       - name: Build Blender add-on
         run: |
+          rm -rf builds
           mkdir -p builds
           blender --command extension build --source-dir . --output-dir builds/ --verbose
+          echo "Build contents:"
+          ls -lh builds/
 
-      - name: Commit and push build artifacts
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add -A builds/
-          git commit -m "Update build and index.json" || echo "No changes to commit"
-          git push origin HEAD:main
-
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-build
+          path: builds/
+          
   deploy:
     needs: build
     uses: ./.github/workflows/push-to-another-repo.yaml
     with:
       directory: builds
     secrets:
-      PUSH_TOKEN: ${{secrets.PUSH_TOKEN}}
+      PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
