@@ -115,6 +115,10 @@ def get_client() -> ConduitClient:
         _instance = ConduitClient()
     return _instance
 
+def send_command(command: str, **kwargs) -> dict | None:
+    """Send a command to the Conduit server."""
+    client = get_client()
+    return client.send(command, **kwargs)
 
 def get_heartbeat() -> bool:
     """Shortcut to check if the server is alive."""

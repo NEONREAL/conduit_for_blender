@@ -1,6 +1,7 @@
 import bpy  # type: ignore
 from ..constants import get_operator
 from ..ConduitClient import register
+from ..pipeline import get_task_info
 
 
 class PIPELINE_OT_RegisterBlender(bpy.types.Operator):
@@ -10,5 +11,5 @@ class PIPELINE_OT_RegisterBlender(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        register()
+        get_task_info()
         return {"FINISHED"}

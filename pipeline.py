@@ -1,8 +1,9 @@
 import bpy #type: ignore
-import os
 from pathlib import Path
 import re
 import json
+import os
+from .ConduitClient import send_command
 from .constants import get_preferences
 
 def get_version_from_filename(filename: str, padded = False, next_version: bool = True) -> int | str | None:
@@ -20,7 +21,6 @@ def get_version_from_filename(filename: str, padded = False, next_version: bool 
     if padded:
         return f"{version:03}"
     return version
-
 
 def get_expected_filename(directory: Path) -> str:
     task = directory.parent
@@ -56,3 +56,30 @@ def is_conduit_file() -> bool:
             return True
     print(asset_path)
     return False
+
+def get_task_name() -> str | None:
+    filepath = Path(bpy.data.filepath)
+    if not filepath:
+        return None
+    task_name = filepath.parent.name
+    return task_name
+
+def get_task_info() -> dict | None:
+    asset = Path(bpy.data.filepath).parent.parent
+    task = Path(bpy.data.filepath).parent
+    rel_task_path = os.path.join(asset, task)
+    unity_path = send_command("get_setting",entry="unity_path")
+    if unity_path["status"] != "ok":
+        return None
+    unity_path = unity_path["entry_value"]
+    unity_path = os.path.join(unity_path, rel_task_path)
+    task_info = {
+        "asset_name": asset.name,
+        "task_name": task.name,
+        "unity_path": unity_path
+    }
+    return task_info
+
+
+def get_task_path() -> Path | None:
+    return
