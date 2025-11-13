@@ -46,18 +46,31 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
         return None
     
     def import_collection(self, filepath):
+
         collection_name = get_expected_filename(Path(filepath))
 
-        # Load the linked collection
-        with bpy.data.libraries.load(str(filepath), link=True, relative=True, create_liboverrides=True) as (data_from, data_to):
+        if not Path(filepath).exists() or not filepath.name.endswith(".blend"):
+            self.report({'ERROR'}, f"Invalid or missing blend file: {filepath}")
+            return
+
+        with bpy.data.libraries.load(str(filepath), link=True, relative=True) as (data_from, data_to):
             if collection_name in data_from.collections:
                 data_to.collections = [collection_name]
             else:
                 self.report({'WARNING'}, f"Collection '{collection_name}' not found in {filepath}")
                 return
-            
-        linked_collection = data_to.collections[0]
 
-        bpy.context.scene.collection.children.link(linked_collection)
+        linked_col = data_to.collections[0]
+
+        # Create an instance object for the collection
+        inst = bpy.data.objects.new(linked_col.name + "_inst", None)
+        inst.instance_type = 'COLLECTION'
+        inst.instance_collection = linked_col
+
+        linked_col.override_hierarchy_create(
+            bpy.context.scene,
+            bpy.context.view_layer,
+            do_fully_editable = True
+        )       
         return
     
