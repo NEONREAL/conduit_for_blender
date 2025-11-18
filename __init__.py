@@ -1,10 +1,6 @@
 import bpy  # type: ignore
 from . import BlenderServer
 
-# setting up API for other Blender addons:
-from .pipeline import is_conduit_file, get_version_from_filename, get_task_name, get_task_info
-
-
 # Preferences
 from .preferences import Sample_Preferences
 

@@ -69,6 +69,8 @@ def get_task_info() -> dict | None:
     task = Path(bpy.data.filepath).parent
     rel_task_path = os.path.join(asset, task)
     unity_path = send_command("get_setting",entry="unity_path")
+    if not unity_path:
+        return None
     if unity_path["status"] != "ok":
         return None
     unity_path = unity_path["entry_value"]
@@ -79,7 +81,3 @@ def get_task_info() -> dict | None:
         "unity_path": unity_path
     }
     return task_info
-
-
-def get_task_path() -> Path | None:
-    return

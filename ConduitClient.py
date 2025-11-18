@@ -33,7 +33,9 @@ class ConduitClient:
         """Send ping command and update _alive status."""
         response = self.send("ping")
         if not response:
-            return False
+            self._alive = False
+            return
+
         with self._lock:
             alive = response["status"] == "ok"
 
@@ -122,7 +124,9 @@ def send_command(command: str, **kwargs) -> dict | None:
 
 def get_heartbeat() -> bool:
     """Shortcut to check if the server is alive."""
-    return get_client().check()
+    hb = get_client().check()
+    print(f"Heartbeat: {hb} ")
+    return hb
 
 
 def log(message: str, level: str = "info"):
