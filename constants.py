@@ -13,7 +13,7 @@ bl_id_prefix = "conduit"
 
 class AddonProperties:
     module_name = __package__
-    panel_category = "Conduit"
+    panel_category = "SomethinhgSomething"
     
 
 
