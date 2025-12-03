@@ -27,5 +27,3 @@ class VIEW3D_PT_UI_ServerStatus(bpy.types.Panel):
             server_box.label(text="Blender: Running", icon="CHECKMARK")
         else:
             server_box.label(text="Blender: Offline", icon="ERROR")
-
-        layout.operator(get_operator("register_blender"), text="register")
