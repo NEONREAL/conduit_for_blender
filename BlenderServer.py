@@ -2,6 +2,29 @@ import socket
 from threading import Thread
 import json
 import bpy
+import queue
+import queue
+
+job_queue = queue.Queue()
+
+def process_jobs():
+    try:
+        cmd, args, conn = job_queue.get_nowait()
+    except queue.Empty:
+        return 0.1  # keep timer alive
+
+    try:
+        if cmd == "link":
+            bpy.ops.conduit.link(path=args.get("path"))
+            conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
+        else:
+            conn.sendall(json.dumps({"status": "error", "msg": "unknown cmd"}).encode("utf-8"))
+    except Exception as e:
+        conn.sendall(json.dumps({"status": "error", "msg": str(e)}).encode("utf-8"))
+    finally:
+        conn.close()
+
+    return 0.0  # run again ASAP
 
 
 class BlenderServer:
@@ -22,8 +45,9 @@ class BlenderServer:
 
     def handle_link(self, conn, args):
         try :
-            filepath = args.get("path", "")
-            bpy.ops.conduit.link(path=filepath)
+            job_queue.put(("link", args, conn))
+            bpy.app.timers.register(process_jobs, first_interval=0.0)
+
             conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
         except Exception as e:
             conn.sendall(json.dumps({"status": "error", "msg": str(e)}).encode("utf-8"))
