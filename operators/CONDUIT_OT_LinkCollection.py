@@ -19,7 +19,7 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
         
         file = self.get_master_file(self.path)
         if file:
-            self.import_collection(file)
+            self.import_collection(file, context)
         return {"FINISHED"}
     
     def validate_path(self) -> Path | None:
@@ -34,7 +34,7 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
             return path
 
 
-    def get_master_file(self, directory: Path) -> Path | None:
+    def get_master_file(self, directory: Path, ) -> Path | None:
         if isinstance(directory, Path):
             pass
         else:
@@ -45,7 +45,7 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
                 return file
         return None
     
-    def import_collection(self, filepath):
+    def import_collection(self, filepath,context):
 
         collection_name = get_expected_filename(Path(filepath))
 
@@ -61,11 +61,11 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
                 return
 
         linked_col = data_to.collections[0]
-
-        # Create an instance object for the collection
-        inst = bpy.data.objects.new(linked_col.name + "_inst", None)
+        inst = bpy.data.objects.new(linked_col.name, None)
         inst.instance_type = 'COLLECTION'
         inst.instance_collection = linked_col
+
+        context.scene.collection.objects.link(inst)
 
         linked_col.override_hierarchy_create(
             bpy.context.scene,
