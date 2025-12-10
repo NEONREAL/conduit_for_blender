@@ -81,3 +81,23 @@ def get_task_info() -> dict | None:
         "unity_path": unity_path
     }
     return task_info
+
+def get_Asset_info() -> dict | None:
+    asset = Path(bpy.data.filepath).parent.parent
+    tasks = [] 
+    task_names = []
+    for entry in asset.iterdir():
+        tasks.append(entry)
+        task_names.append(entry.name)
+    Asset_info = {
+        "path": asset,
+        "name": asset.name,
+        "tasks": tasks,
+        "task_names":task_names
+        }
+    return Asset_info
+
+def get_tasks() -> list:
+    info = get_Asset_info()
+    tasks = info.tasks
+    return tasks
