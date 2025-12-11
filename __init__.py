@@ -10,6 +10,8 @@ from .operators.CONDUIT_OT_SaveMasterVersion import CONDUIT_OT_SaveMasterVersion
 from .operators.CONDUIT_OT_SaveNewVersion import CONDUIT_OT_SaveNewVersion
 from .operators.PIPELINE_OT_RegisterBlender import PIPELINE_OT_RegisterBlender
 from .operators.CONDUIT_OT_CreateTexture import CONDUIT_OT_CreateTexture
+from .operators.CONDUIT_OT_ImportTexture import CONDUIT_OT_ImportTexture
+from .operators.CONDUIT_OT_RefreshTasks import CONDUIT_OT_RefreshTasks
 
 # Panels
 from .panels.VIEW3D_PT_UI_AssetManager import VIEW3D_PT_UI_AssetManager
@@ -19,6 +21,9 @@ from .panels.Shading_PT_TextureManager import Shading_PT_TextureManager
 
 # PG
 from .TextureManager.TextureManagerProps import CONDUIT_TexturePG
+from .TextureManager.TextureManagerProps import TaskItem
+from .TextureManager.TextureTaskList import UI_UL_list, TaskProperties, TaskListItem
+
 # Module-level variable for the server instance
 _server_instance: BlenderServer.BlenderServer | None = None
 
@@ -58,12 +63,18 @@ bl_info = {
 # Classes to register
 classes = [
     #Sample_Preferences,
+    TaskItem,
+    TaskListItem,
+    TaskProperties,
+    UI_UL_list,
     CONDUIT_TexturePG,
 
     CONDUIT_OT_LinkCollection,
     CONDUIT_OT_SaveMasterVersion,
     CONDUIT_OT_SaveNewVersion,
     CONDUIT_OT_CreateTexture,
+    CONDUIT_OT_RefreshTasks,
+    CONDUIT_OT_ImportTexture,
 
     PIPELINE_OT_RegisterBlender,
 
@@ -82,6 +93,7 @@ def register():
 
     # create Property Groups
     bpy.types.Scene.conduit_texture_properties = bpy.props.PointerProperty(type=CONDUIT_TexturePG)
+    bpy.types.Scene.TaskProperties = bpy.props.PointerProperty(type=TaskProperties)
 
     # Create and start the server
     _server_instance = BlenderServer.BlenderServer()
