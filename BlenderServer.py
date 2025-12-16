@@ -13,12 +13,15 @@ def process_jobs():
     except queue.Empty:
         return 0.1  # keep timer alive
 
+    print(cmd, args)
+    print(type(conn))
     try:
         if cmd == "link":
+            path = args.get("path")
+            print(f"path: {path}")
+
             bpy.ops.conduit.link(path=args.get("path"))
-            conn.sendall(json.dumps({"status": "ok"}).encode("utf-8"))
-        else:
-            conn.sendall(json.dumps({"status": "error", "msg": "unknown cmd"}).encode("utf-8"))
+
     except Exception as e:
         conn.sendall(json.dumps({"status": "error", "msg": str(e)}).encode("utf-8"))
     finally:

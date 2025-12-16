@@ -47,7 +47,7 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
     
     def import_collection(self, filepath,context):
 
-        collection_name = get_expected_filename(Path(filepath))
+        collection_name, _ = get_expected_filename(Path(filepath))
 
         if not Path(filepath).exists() or not filepath.name.endswith(".blend"):
             self.report({'ERROR'}, f"Invalid or missing blend file: {filepath}")
@@ -65,7 +65,7 @@ class CONDUIT_OT_LinkCollection(bpy.types.Operator):
         inst.instance_type = 'COLLECTION'
         inst.instance_collection = linked_col
 
-        context.scene.collection.objects.link(inst)
+        #context.scene.collection.objects.link(inst)
 
         linked_col.override_hierarchy_create(
             bpy.context.scene,
