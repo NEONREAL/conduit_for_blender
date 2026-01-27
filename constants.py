@@ -24,9 +24,10 @@ def get_manifest():
     return manifest
 
 
-def get_preferences():
+def get_preferences():    
     # No context needed, directly get addon preferences by package name
-    addon_prefs = bpy.context.preferences.addons.get(__package__).preferences
+    addon = bpy.context.preferences.addons[__package__]
+    addon_prefs = addon.preferences
     return addon_prefs
 
 

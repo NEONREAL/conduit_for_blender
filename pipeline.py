@@ -27,6 +27,7 @@ def get_expected_filename(directory: Path) -> tuple[str, str]:
     task = directory.parent
     asset = Path(task).parent
     expected_filename = f"{asset.name}_{task.name}"
+    print(expected_filename)
     return expected_filename, asset.name
 
 def create_json_info(comment: str | None = None) -> None:
