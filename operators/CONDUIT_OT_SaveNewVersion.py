@@ -24,8 +24,11 @@ class CONDUIT_OT_SaveNewVersion(bpy.types.Operator):
         print(version)
         if not version:
             return {'CANCELLED'}
-        filename = f"{get_expected_filename(blend_path)}_{version}.blend"
+        filename = f"{get_expected_filename(blend_path)[0]}_{version}.blend"
+        print(filename)
+        print(f"directory {directory}")
         filepath = os.path.join(directory, filename)
+        print(filepath)
 
         #store master file
         bpy.ops.wm.save_as_mainfile(filepath=filepath)

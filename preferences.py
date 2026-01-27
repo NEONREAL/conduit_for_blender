@@ -2,7 +2,7 @@ import bpy  # type: ignore
 from .constants import get_operator
 
 
-class Sample_Preferences(bpy.types.AddonPreferences):
+class Conduit_Preferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     username: bpy.props.StringProperty(

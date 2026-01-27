@@ -2,7 +2,7 @@ import bpy  # type: ignore
 from . import BlenderServer
 
 # Preferences
-from .preferences import Sample_Preferences
+from .preferences import Conduit_Preferences
 
 # Operators
 from .operators.CONDUIT_OT_LinkCollection import CONDUIT_OT_LinkCollection
@@ -62,7 +62,7 @@ bl_info = {
 
 # Classes to register
 classes = [
-    #Sample_Preferences,
+    Conduit_Preferences,
     TaskItem,
     TaskListItem,
     TaskProperties,
