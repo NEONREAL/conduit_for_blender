@@ -19,18 +19,9 @@ class CONDUIT_OT_SaveMasterVersion(bpy.types.Operator):
         filename = f"_master_{get_expected_filename(blend_path)[0]}.blend"
         filepath = os.path.join(directory, filename)
 
-        # renaming the collection for masterfile
-        collection = bpy.data.collections["EXPORT"]
-        collection.name = get_expected_filename(blend_path)[0]
-
         # store master file
         bpy.ops.wm.save_as_mainfile(filepath=filepath, copy=True)
-
-        collection = bpy.data.collections[get_expected_filename(blend_path)[0]]
-        collection.name = "EXPORT"
-
         # refresh version list
         log(f"saved {filename} as master file!")
 
         return {"FINISHED"}
-
