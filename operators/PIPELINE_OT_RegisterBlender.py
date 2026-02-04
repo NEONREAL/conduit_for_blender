@@ -12,5 +12,5 @@ class PIPELINE_OT_RegisterBlender(bpy.types.Operator):
 
     def execute(self, context):
         path = bpy.app.binary_path
-        send_command("blender_exec", path = path)
+        send_command("blender_exec", path = path, version = bpy.app.version_string)
         return {"FINISHED"}
