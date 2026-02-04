@@ -28,10 +28,9 @@ class PIPELINE_OT_RegisterBlender(bpy.types.Operator):
                 self.report({'INFO'}, f"This Blender executable is already registered as Version {version}")
                 return {"CANCELLED"}
 
-        if False:
-            existing_blender_versions_dict.append({"path": path, "version": version})
-            data["blender_versions"] = existing_blender_versions_dict
-            with open(json_path, "w") as f:
-                json.dump(data, f, indent=4)
-            self.report({'INFO'}, "Blender executable registered successfully.")
+
+        existing_blender_versions_dict[version] = path
+        data["blender_versions"] = existing_blender_versions_dict
+        with open(json_path, "w") as f:
+            json.dump(data, f, indent=4)
         return {"FINISHED"}
